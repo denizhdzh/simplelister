@@ -4,11 +4,12 @@ import { getFirestore, doc, getDoc, collection, getDocs, where, query, orderBy, 
 import { onAuthStateChanged } from "firebase/auth"; // onAuthStateChanged import edildi
 import { Link } from 'react-router-dom'; // Removed useNavigate import
 import { 
-  LinkSimple, 
-  Fire,
-  ArrowUpRight,
-  Sparkle,
-  Star
+  ArrowRight, 
+  Flame,
+  Rocket,
+  PlusSquare,
+  Minus,
+  Fire
   // Removed SignIn, ChartLine, Users, Lightning, Star, CaretRight, Plus, X
 } from '@phosphor-icons/react';
 
@@ -37,6 +38,10 @@ function Sidebar() {
   const [adsProduct, setAdsProduct] = useState(null);
   const [loadingAds, setLoadingAds] = useState(true);
   const [adsGradientColors, setAdsGradientColors] = useState('from-red-500 to-neutral-950');
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [showFeaturedPopup, setShowFeaturedPopup] = useState(false);
+  const [showSponsorPopup, setShowSponsorPopup] = useState(false);
 
 
 
@@ -224,6 +229,55 @@ function Sidebar() {
 
     fetchAdsProduct();
 
+    // Fetch featured products
+    const fetchFeaturedProducts = async () => {
+      setLoadingFeatured(true);
+      setFeaturedProducts([]);
+      try {
+        const featuredConfigRef = doc(db, 'system', 'featured_products');
+        const configSnap = await getDoc(featuredConfigRef);
+
+        if (configSnap.exists()) {
+          const configData = configSnap.data();
+          console.log("Featured products config data:", configData);
+          // Use the correct field name: productId (array)
+          const featuredProductIds = configData.productId || [];
+
+          if (featuredProductIds.length > 0) {
+            // Fetch all featured products
+            const productPromises = featuredProductIds.map(async (productId) => {
+              try {
+                const productRef = doc(db, 'products', productId);
+                const productSnap = await getDoc(productRef);
+                if (productSnap.exists()) {
+                  return { id: productSnap.id, ...productSnap.data() };
+                }
+                return null;
+              } catch (error) {
+                console.error(`Error fetching featured product ${productId}:`, error);
+                return null;
+              }
+            });
+
+            const products = await Promise.all(productPromises);
+            const validProducts = products.filter(product => product !== null);
+            setFeaturedProducts(validProducts);
+            console.log("Featured products fetched successfully:", validProducts);
+          } else {
+            console.log("Featured products config does not contain productId field or it's empty.");
+          }
+        } else {
+          console.log("Featured products config document (system/featured_products) not found!");
+        }
+      } catch (error) {
+        console.error("Error fetching featured products: ", error);
+      } finally {
+        setLoadingFeatured(false);
+      }
+    };
+
+    fetchFeaturedProducts();
+
     // Cleanup listener on component unmount
     return () => {
       unsubscribeAuth();
@@ -240,192 +294,357 @@ function Sidebar() {
   };
 
   return (
-    <div className="sticky top-20">
-      <div className="bg-white rounded-lg">
-        {/* Banner Ads */}
-        <div className="relative w-full mb-6" style={{ paddingBottom: '75%' }}>
-          {loadingAds ? (
-            <div className="absolute inset-0 bg-gray-200 rounded-lg animate-pulse"></div>
-          ) : adsProduct ? (
-            <a 
-              href={`${adsProduct.product_url?.startsWith('http') ? adsProduct.product_url : `https://${adsProduct.product_url}`}?ref=simplelister`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="absolute inset-0 group"
-            >
-              {/* Background Image or Gradient */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${adsGradientColors} rounded-lg`}></div>
-              
-              {/* Overlay Content */}
-              <div className="absolute inset-0 p-4 flex flex-col justify-between text-white">
-                {/* Top Section */}
-                <div className="flex items-start justify-between">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 py-1 text-[10px] font-bold">
-                    ✨ FEATURED
-                  </div>
-                  {adsProduct.logo && adsProduct.logo.url && (
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg p-1">
-                      <img 
-                        src={adsProduct.logo.url} 
-                        alt={`${adsProduct.product_name} logo`}
-                        className="w-full h-full object-contain rounded"
-                      />
-                    </div>
-                  )}
+    <div className="sticky top-16 space-y-6">
+      {/* Banner Ads */}
+      {loadingAds ? (
+        <div className="h-32 bg-gray-100 animate-pulse"></div>
+      ) : adsProduct ? (
+        <a 
+          href={`${adsProduct.product_url?.startsWith('http') ? adsProduct.product_url : `https://${adsProduct.product_url}`}?ref=simplelister`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block group"
+        >
+          <div className="bg-black text-white p-4">
+            <div className="flex items-start justify-between mb-3">
+              <span className="bg-orange-400 text-black text-xs font-mono px-1.5 py-0.5">
+                FEATURED
+              </span>
+              {adsProduct.logo && adsProduct.logo.url && (
+                <div className="w-8 h-8 bg-white rounded p-1">
+                  <img 
+                    src={adsProduct.logo.url} 
+                    alt={`${adsProduct.product_name} logo`}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
-                
-                {/* Bottom Section */}
-                <div>
-                  <h3 className="font-bold text-lg mb-1 line-clamp-2">
-                    {adsProduct.product_name || 'Featured Product'}
-                  </h3>
-                  {adsProduct.tagline && (
-                    <p className="text-xs opacity-90 line-clamp-2 mb-2">
-                      {adsProduct.tagline}
-                    </p>
-                  )}
-                  <div className="bg-white/20 backdrop-blur-sm rounded-md px-3 py-1 text-[10px] font-semibold inline-flex items-center gap-1 group-hover:bg-white/30 transition-colors">
-                    Discover Now
-                    <ArrowUpRight size={10} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Hover Overlay */}
-              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"></div>
-            </a>
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-medium">Ad Space</span>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Daily Streak */}
-        <div className="mb-6">
-          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Daily Streak</h3>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            {loadingAuth ? (
-              <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ) : currentUser ? (
-              <div>
-                <div className="flex items-center mb-2">
-                  <Fire size={18} className="text-orange-500 mr-2" />
-                  <span className="text-sm font-medium text-gray-800">
-                    {streakCount} day{streakCount !== 1 ? 's' : ''} streak
-                  </span>
-                </div>
-                <div className="bg-gray-100 h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-orange-400 to-red-500 h-full rounded-full" 
-                    style={{ width: `${Math.min(streakCount * 10, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            ) : (
-              <Link 
-                to="/auth" 
-                className="w-full flex items-center justify-center px-3 py-1.5 text-sm bg-black hover:bg-gray-800 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                Log In / Sign Up
-              </Link>
+            
+            <h3 className="font-semibold text-lg mb-1">
+              {adsProduct.product_name}
+            </h3>
+            {adsProduct.tagline && (
+              <p className="text-sm text-gray-300 mb-3 leading-relaxed">
+                {adsProduct.tagline}
+              </p>
             )}
-          </div>
-        </div>
-
-        {/* Analytics */}
-        <div className="mb-6">
-          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Analytics</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white border border-gray-200 rounded-lg p-3">
-              <div className="text-lg font-semibold text-gray-800">22800</div>
-              <div className="text-xs text-gray-500">Page Views</div>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-3">
-              <div className="text-lg font-semibold text-gray-800">12600</div>
-              <div className="text-xs text-gray-500">Visitors</div>
+            <div className="text-xs text-gray-400 group-hover:text-white font-mono transition-colors">
+              visit product →
             </div>
           </div>
-        </div>
+        </a>
+      ) : null}
 
-        {/* Daily Underdog */}
-        <div className="mb-6">
-          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Daily Underdog</h3>
-          {loadingUnderdog ? (
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+
+      {/* Voting Streak */}
+      <div>
+        <h3 className="text-sm font-mono mb-3 opacity-50">voting streak</h3>
+        {loadingAuth ? (
+          <div className="animate-pulse space-y-2">
+            <div className="h-4 bg-gray-200 w-3/4"></div>
+            <div className="h-2 bg-gray-200 w-1/2"></div>
+          </div>
+        ) : currentUser ? (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Flame size={18} className="text-orange-500" />
+              <span className="font-semibold text-black">
+                {streakCount} days
+              </span>
+            </div>
+            <div className="bg-gray-100 h-2 overflow-hidden">
+              <div 
+                className="bg-orange-500 h-full transition-all duration-300" 
+                style={{ width: `${Math.min(streakCount * 10, 100)}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 font-mono">keep voting daily</p>
+          </div>
+        ) : (
+          <Link 
+            to="/auth" 
+            className="block text-center py-2 text-sm bg-black text-white hover:opacity-70 transition-opacity"
+          >
+            start voting
+          </Link>
+        )}
+      </div>
+
+      <hr className="border-gray-200" />
+
+      {/* Live Stats */}
+      <div>
+        <h3 className="text-sm font-mono mb-3 opacity-50">live stats</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-xl font-semibold text-black">22.8K</div>
+            <div className="text-xs text-gray-500 font-mono">views</div>
+          </div>
+          <div>
+            <div className="text-xl font-semibold text-black">1.2K</div>
+            <div className="text-xs text-gray-500 font-mono">viewers</div>
+          </div>
+        </div>
+      </div>
+
+      <hr className="border-gray-200" />
+
+      {/* Featured Products */}
+      <div>
+        <h3 className="text-sm font-mono mb-3 opacity-50">featured products</h3>
+        {loadingFeatured ? (
+          <div className="space-y-3 animate-pulse">
+            {Array(3).fill().map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gray-200"></div>
+                <div className="flex-1 space-y-1">
+                  <div className="h-3 bg-gray-200 w-3/4"></div>
+                  <div className="h-2 bg-gray-200 w-1/2"></div>
+                </div>
               </div>
-            </div>
-          ) : underdogProduct ? (
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              {/* Make the entire card clickable */}
-              <a 
-                href={`${underdogProduct.product_url?.startsWith('http') ? underdogProduct.product_url : `https://${underdogProduct.product_url}`}?ref=simplelister`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block hover:bg-gray-50 transition-colors"
-              >
-                {/* Logo and product info section */}
-                <div className="p-4">
-                  <div className="flex items-center">
-                    <div className="relative flex-shrink-0 w-14 h-14 rounded-[12px] p-1.5 mr-3 flex items-center justify-center overflow-hidden bg-gray-100">
-                      {underdogProduct.logo && underdogProduct.logo.url ? (
+            ))}
+          </div>
+        ) : featuredProducts.length > 0 ? (
+          <div>
+            <div className="space-y-2 mb-4">
+              {featuredProducts.slice(0, 5).map((product) => (
+                <Link 
+                  key={product.id}
+                  to={`/product/${product.slug}`}
+                  className="block border border-gray-200 p-3 hover:border-orange-300 hover:bg-orange-50 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-100 p-1 flex-shrink-0">
+                      {product.logo && product.logo.url ? (
                         <img 
-                          src={underdogProduct.logo.url} 
-                          alt={`${underdogProduct.product_name || 'Underdog'} logo`}
-                          className="w-full h-full rounded-[6px] object-contain"
+                          src={product.logo.url} 
+                          alt={product.product_name}
+                          className="w-full h-full object-contain"
                         />
                       ) : (
-                        <div className="w-full h-full rounded-[6px] bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-400 text-xs font-medium">
-                            {underdogProduct.product_name?.charAt(0) || 'U'}
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-600 text-xs font-mono">
+                            {product.product_name?.charAt(0) || 'P'}
                           </span>
                         </div>
                       )}
                     </div>
                     
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-0.5">
-                        {underdogProduct.product_name || 'Underdog Product'}
-                      </h3>
-                      {underdogProduct.tagline && (
-                        <p className="text-xs text-gray-600 line-clamp-2">{underdogProduct.tagline}</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-black text-sm truncate mb-1">
+                        {product.product_name}
+                      </h4>
+                      {product.tagline && (
+                        <p className="text-xs text-gray-600 truncate mb-1 leading-relaxed">
+                          {product.tagline}
+                        </p>
                       )}
+                      <div className="text-xs text-gray-500 font-mono">
+                        {product.upvote || 0} votes
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="border-t border-gray-100">
-                  <div className="py-2.5 px-4 text-xs text-gray-600 font-medium flex items-center justify-center">
-                    <LinkSimple size={12} className="mr-1.5" />
-                    Visit Website
-                    <ArrowUpRight size={10} className="ml-1 text-gray-400" />
-                  </div>
-                </div>
-              </a>
+                </Link>
+              ))}
             </div>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-sm text-gray-500">Underdog product not available.</p>
+            
+            {/* Get Featured Button - Always show */}
+            <div 
+              onClick={() => setShowFeaturedPopup(true)}
+              className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 border border-orange-200 cursor-pointer hover:from-orange-100 hover:to-orange-200 transition-all"
+            >
+              <div className="text-center">
+                <Fire size={24} className="text-orange-500 mx-auto mb-2" />
+                <h4 className="font-semibold text-black text-sm mb-2">
+                  Get Featured
+                </h4>
+                <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                  Boost your product visibility with premium placement
+                </p>
+                <div className="text-xs font-semibold text-orange-600">
+                  Learn More →
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-
-
-
-        {/* Featured Products */}
-        {/* Entire section removed:
-        <div className="mb-6">
-          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Featured Products</h3>
-          ...
-        </div>
-        */}
+          </div>
+        ) : (
+          <div 
+            onClick={() => setShowFeaturedPopup(true)}
+            className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 border-2 border-dashed border-orange-200 cursor-pointer hover:from-orange-100 hover:to-orange-200 transition-all"
+          >
+            <div className="text-center">
+              <PlusSquare size={24} className="text-orange-500 mx-auto mb-2" />
+              <h4 className="font-semibold text-black text-sm mb-2">
+                Get Featured
+              </h4>
+              <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                Be the first to showcase your product here
+              </p>
+              <div className="text-xs font-semibold text-orange-600">
+                Learn More →
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      <hr className="border-gray-200" />
+
+      {/* Hidden Gem */}
+      <div>
+        <h3 className="text-sm font-mono mb-3 opacity-50">hidden gem</h3>
+        {loadingUnderdog ? (
+          <div className="animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-200"></div>
+              <div className="flex-1 space-y-1">
+                <div className="h-4 bg-gray-200 w-3/4"></div>
+                <div className="h-3 bg-gray-200 w-1/2"></div>
+              </div>
+            </div>
+          </div>
+        ) : underdogProduct ? (
+          <a 
+            href={`${underdogProduct.product_url?.startsWith('http') ? underdogProduct.product_url : `https://${underdogProduct.product_url}`}?ref=simplelister`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block hover:opacity-70 transition-opacity"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gray-100 p-2">
+                {underdogProduct.logo && underdogProduct.logo.url ? (
+                  <img 
+                    src={underdogProduct.logo.url} 
+                    alt={underdogProduct.product_name}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-600 text-xs font-mono">
+                      {underdogProduct.product_name?.charAt(0) || 'H'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-black text-sm truncate">
+                  {underdogProduct.product_name}
+                </h4>
+                {underdogProduct.tagline && (
+                  <p className="text-xs text-gray-600 truncate">{underdogProduct.tagline}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="text-xs text-gray-500 font-mono flex items-center gap-1">
+              <ArrowRight size={12} />
+              discover product
+            </div>
+          </a>
+        ) : (
+          <p className="text-sm text-gray-500 font-mono">no gem available</p>
+        )}
+      </div>
+
+      {/* Featured Products Popup */}
+      {showFeaturedPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 max-w-md mx-4 relative">
+            <button 
+              onClick={() => setShowFeaturedPopup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <Minus size={20} />
+            </button>
+            
+            <div className="text-center">
+              <Fire size={48} className="text-orange-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-black mb-4">Get Featured</h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Showcase your product in our premium featured section and reach 22K+ monthly visitors. 
+                Get maximum visibility and drive more traffic to your product.
+              </p>
+              
+              <div className="bg-orange-50 p-4 mb-6 text-left">
+                <h3 className="font-semibold text-black mb-2">What's included:</h3>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Premium placement in sidebar</li>
+                  <li>• Featured badge on your product</li>
+                  <li>• Extended visibility (30 days)</li>
+                  <li>• Priority support</li>
+                </ul>
+              </div>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowFeaturedPopup(false)}
+                  className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Maybe Later
+                </button>
+                <Link
+                  to="/pricing"
+                  onClick={() => setShowFeaturedPopup(false)}
+                  className="flex-1 py-2 px-4 bg-orange-500 text-white hover:bg-orange-600 transition-colors text-center"
+                >
+                  Get Featured - $79
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sponsor Popup */}
+      {showSponsorPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 max-w-md mx-4 relative">
+            <button 
+              onClick={() => setShowSponsorPopup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <Minus size={20} />
+            </button>
+            
+            <div className="text-center">
+              <Rocket size={48} className="text-orange-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-black mb-4">Become a Sponsor</h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Partner with SimpleLister and get your brand in front of 22K+ monthly visitors. 
+                Perfect for SaaS tools, developer products, and tech services.
+              </p>
+              
+              <div className="bg-orange-50 p-4 mb-6 text-left">
+                <h3 className="font-semibold text-black mb-2">Sponsor benefits:</h3>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Logo placement on homepage</li>
+                  <li>• Brand visibility across all pages</li>
+                  <li>• Targeted tech-savvy audience</li>
+                  <li>• Monthly performance reports</li>
+                </ul>
+              </div>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowSponsorPopup(false)}
+                  className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Not Now
+                </button>
+                <Link
+                  to="/pricing"
+                  onClick={() => setShowSponsorPopup(false)}
+                  className="flex-1 py-2 px-4 bg-orange-500 text-white hover:bg-orange-600 transition-colors text-center"
+                >
+                  View Packages
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

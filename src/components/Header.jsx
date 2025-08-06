@@ -3,9 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { auth, app } from '../firebase';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { MagnifyingGlass, Plus, SignOut, User as UserIcon } from '@phosphor-icons/react';
+import { MagnifyingGlass, Plus, SignOut, User as UserIcon, Star } from '@phosphor-icons/react';
 import SearchPopup from './SearchPopup';
-import logoSrc from '/logonaked.png';
+import logoSrc from '/logo.svg';
 
 function Header() {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -86,16 +86,14 @@ function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-6">
-            <Link to="/" className="flex-shrink-0 rounded-sm">
-              <div className="bg-red-500 p-2 rounded-lg">
-                <img className="h-6 w-auto" src={logoSrc} alt="SimpleLister" />
-              </div>
+    <header className="sticky top-0 z-40 w-full bg-neutral-100 border-b border-gray-100">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex justify-between items-center h-14">
+          <div className="flex items-center gap-8">
+            <Link to="/" className="flex-shrink-0">
+              <img className="h-5 w-auto" src={logoSrc} alt="SimpleLister" style={{filter: 'brightness(0) saturate(100%)'}} />
             </Link>
-            <nav className="hidden md:flex space-x-6">
+            <nav className="hidden md:flex gap-6">
               <NavLink to="/">Home</NavLink>
               <NavLink to="/leaderboard">Leaderboard</NavLink>
               <NavLink to="/categories">Categories</NavLink>
@@ -103,64 +101,70 @@ function Header() {
             </nav>
           </div>
           
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="p-2 rounded-full text-gray-600 bg-white hover:bg-gray-100 transition-colors"
+              className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Search"
             >
-              <MagnifyingGlass size={20} />
+              <MagnifyingGlass size={18} />
             </button>
             
             {currentUser ? (
               <>
-                <Link
-                  to="/submit"
-                  className="hidden sm:inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-500 hover:bg-red-200 hover:text-red-500 hover:border-red-500"
-                >
-                  <Plus size={16} className="mr-1.5" /> Submit
-                </Link>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Link
+                    to="/submit"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-black text-neutral-100 hover:opacity-70 transition-opacity"
+                  >
+                    <Plus size={14} /> Submit
+                  </Link>
+                  <Link
+                    to="/get-featured"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold border border-orange-500 text-orange-600 hover:bg-orange-50 transition-colors"
+                  >
+                    <Star size={14} /> Get Featured
+                  </Link>
+                </div>
                 <div className="relative">
                   <button 
-                    className="flex items-center p-1 border border-transparent rounded-full bg-white hover:bg-gray-100 focus:outline-none transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 hover:opacity-70 transition-opacity"
                     onClick={() => setShowDropdown(!showDropdown)}
                   >
                     <img 
                        src={avatarUrl}
                        alt="User profile" 
-                       className="h-8 w-8 rounded-full object-cover bg-gray-200"
+                       className="h-8 w-8  object-cover"
                      />
                   </button>
                   
                   {showDropdown && (
-                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100">
+                    <div className="absolute right-0 mt-2 w-44 bg-neutral-100 border border-gray-200 py-1.5 shadow-lg">
                        <Link 
                          to={`/profile/${profileUsername}`}
                          onClick={() => setShowDropdown(false)}
-                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 rounded-sm mx-1"
+                         className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 transition-colors"
                        >
-                          <UserIcon size={16} className="mr-2"/> Your Profile
+                          <UserIcon size={14} /> Profile
                        </Link>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button 
                         onClick={handleSignOut} 
-                        className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-800 bg-white hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 rounded-sm mx-1"
+                        className="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 transition-colors"
                       >
-                        <SignOut size={16} className="mr-2"/> Sign out
+                        <SignOut size={14} /> Sign out
                       </button>
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Link
-                  to="/auth?mode=signup"
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none"
-                >
-                  Sign up
-                </Link>
-              </div>
+              <Link
+                to="/auth?mode=signup"
+                className="px-3 py-1.5 text-sm font-semibold bg-black text-white hover:opacity-70 transition-opacity"
+              >
+                Sign up
+              </Link>
             )}
           </div>
         </div>
@@ -178,7 +182,7 @@ const NavLink = ({ to, children }) => {
   return (
     <Link 
       to={to} 
-      className={`text-sm font-medium transition-colors ${isActive ? 'text-black' : 'text-gray-600 hover:text-black'} focus:outline-none focus:text-black focus:underline`}
+      className={`text-sm font-mono transition-opacity ${isActive ? 'opacity-100' : 'opacity-50 hover:opacity-80'}`}
     >
       {children}
     </Link>

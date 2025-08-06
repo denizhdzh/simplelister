@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useLocation, useNavigate, Outlet, Link } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
@@ -8,6 +8,7 @@ import LaunchCountdown from './components/LaunchCountdown';
 import { app, auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, getDocs, query, where, orderBy, Timestamp, limit, doc, getDoc } from 'firebase/firestore';
+import { PlusCircle, Rocket, ArrowRight } from '@phosphor-icons/react';
 
 function App() {
   const [sponsors, setSponsors] = useState([]);
@@ -17,6 +18,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [userProfileData, setUserProfileData] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showSponsorPopup, setShowSponsorPopup] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -187,53 +189,85 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-neutral-100">
       <Header />
       
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex flex-col md:flex-row gap-12">
-            <div className="flex-1 order-1">
-              <div className="mb-6">
-                <h1 className="text-2xl font-semibold text-gray-900 mb-1">Today's Products</h1>
-                <p className="text-base text-gray-600">Discover the latest products launched in the tech community</p>
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="flex gap-8">
+            <div className="flex-1">
+              <div className="mb-8">
+                <h1 className="text-4xl font-bold text-neutral-900 mb-2">Weekly Product Battle</h1>
+                <p className="text-lg text-neutral-600">Vote for the most innovative products this week. Only the best survive.</p>
               </div>
-              
-              <div className="mb-6 pb-4 border-b border-gray-200">
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-500 mr-3">Sponsored by</p>
-                  <div className="flex space-x-4">
-                    {loadingSponsors ? (
-                      <div className="animate-pulse flex space-x-4">
-                        <div className="h-8 w-24 bg-gray-200 rounded"></div>
-                        <div className="h-8 w-16 bg-gray-200 rounded"></div>
-                      </div>
-                    ) : sponsors.length > 0 ? (
-                      sponsors.map(sponsor => (
-                        <a 
-                          key={sponsor.id} 
-                          href={`${sponsor.url}${sponsor.url.includes('?') ? '&' : '?'}ref=simplelister`}
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center hover:opacity-80 transition-opacity"
-                        >
-                          {sponsor.logo && (
-                            <img 
-                              src={typeof sponsor.logo === 'string' ? sponsor.logo : sponsor.logo.url} 
-                              alt={sponsor.name} 
-                              className="h-8 w-auto rounded-md" 
-                              style={{ maxHeight: '32px' }}
-                            />
-                          )}
-                          {sponsor.name && sponsor.showName !== false && (
-                            <span className="text-2xl font-bold text-gray-800 ml-2">{sponsor.name}</span>
-                          )}
-                        </a>
-                      ))
-                    ) : (
-                      <span className="text-sm text-gray-400">No sponsors</span>
-                    )}
-                  </div>
+
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-mono opacity-50">weekly sponsors</h3>
+                  <Link 
+                    to="/pricing"
+                    className="text-xs text-orange-500 hover:text-orange-600 font-mono transition-colors"
+                  >
+                    become a sponsor →
+                  </Link>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {loadingSponsors ? (
+                    <>
+                      {Array(4).fill().map((_, i) => (
+                        <div key={i} className="h-20 bg-gray-100 animate-pulse"></div>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {/* Always show 4 slots */}
+                      {Array(4).fill().map((_, index) => {
+                        const sponsor = sponsors[index];
+                        
+                        if (sponsor) {
+                          // Show actual sponsor
+                          return (
+                            <a 
+                              key={sponsor.id} 
+                              href={`${sponsor.url}${sponsor.url.includes('?') ? '&' : '?'}ref=simplelister`}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="p-4 flex items-center justify-center gap-3 hover:opacity-70 transition-opacity"
+                            >
+                              {sponsor.logo && (
+                                <img 
+                                  src={typeof sponsor.logo === 'string' ? sponsor.logo : sponsor.logo.url} 
+                                  alt={sponsor.name} 
+                                  className="max-h-8 w-auto object-contain"
+                                />
+                              )}
+                              {sponsor.showName && sponsor.name && (
+                                <span className="font-bold text-black text-lg">{sponsor.name}</span>
+                              )}
+                              {!sponsor.logo && sponsor.name && (
+                                <span className="font-bold text-black text-lg">{sponsor.name}</span>
+                              )}
+                            </a>
+                          );
+                        } else {
+                          // Show empty slot with promotion
+                          return (
+                            <div
+                              key={`empty-${index}`}
+                              onClick={() => setShowSponsorPopup(true)}
+                              className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 flex flex-col items-center justify-center hover:from-orange-100 hover:to-orange-200 transition-all border-2 border-dashed border-orange-200 group cursor-pointer"
+                            >
+                              <PlusCircle size={20} className="text-orange-400 group-hover:text-orange-500 mb-1" />
+                              <span className="text-xs font-mono text-orange-600 group-hover:text-orange-700">
+                                Your Brand Here
+                              </span>
+                            </div>
+                          );
+                        }
+                      })}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -251,7 +285,7 @@ function App() {
               />
             </div>
             
-            <div className="w-full md:w-64 md:flex-shrink-0 order-2">
+            <div className="w-80 flex-shrink-0">
               <Sidebar />
             </div>
           </div>
@@ -259,6 +293,62 @@ function App() {
       </main>
       
       <Footer />
+
+      {/* Sponsor Popup */}
+      {showSponsorPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 max-w-md mx-4 relative">
+            <button 
+              onClick={() => setShowSponsorPopup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <ArrowRight size={20} />
+            </button>
+            
+            <div className="text-center">
+              <Rocket size={48} className="text-orange-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-black mb-4">Become a Sponsor</h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Partner with SimpleLister and get your brand in front of 22K+ monthly visitors. 
+                Perfect for SaaS tools, developer products, and tech services.
+              </p>
+              
+              <div className="bg-orange-50 p-4 mb-6 text-left">
+                <h3 className="font-semibold text-black mb-2">Sponsor benefits:</h3>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Logo placement on homepage</li>
+                  <li>• Brand visibility across all pages</li>
+                  <li>• Featured in weekly newsletter</li>
+                  <li>• Targeted tech-savvy audience</li>
+                  <li>• Monthly performance reports</li>
+                  <li>• Premium brand positioning</li>
+                </ul>
+              </div>
+              
+              <div className="bg-orange-100 p-3 mb-6 text-center">
+                <p className="text-sm font-semibold text-black">Starting from $199/month</p>
+                <p className="text-xs text-gray-600">Flexible packages available</p>
+              </div>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowSponsorPopup(false)}
+                  className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Not Now
+                </button>
+                <Link
+                  to="/pricing"
+                  onClick={() => setShowSponsorPopup(false)}
+                  className="flex-1 py-2 px-4 bg-orange-500 text-white hover:bg-orange-600 transition-colors text-center"
+                >
+                  View Packages
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

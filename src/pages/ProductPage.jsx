@@ -10,7 +10,7 @@ import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import ProductImageGallery from '../components/ProductImageGallery';
 import ProductList from '../components/ProductList';
-import { Rocket, Tag, LinkSimple, LinkedinLogo, TwitterLogo } from '@phosphor-icons/react';
+import { Fire, Rocket, Tag, LinkSimple, LinkedinLogo, TwitterLogo } from '@phosphor-icons/react';
 import { auth } from '../firebase';
 
 // Initialize Firebase Functions and Stripe
@@ -325,64 +325,67 @@ function ProductPage() {
       <Header />
       
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Main Product Content Area */}
-            <div className="flex-1 order-1 bg-white border border-gray-100 rounded-lg p-6">
-              {/* Product Header (Logo, Name, Tagline, Upvote) */}
-              <div className="flex items-start gap-4 mb-6 pb-6 border-b border-gray-200">
-                {/* Logo */}
-                <div className="relative flex-shrink-0 w-16 h-16 rounded-xl p-1 flex items-center justify-center overflow-hidden bg-gray-100 border border-gray-200">
-                  {product.logo && product.logo.url ? (
-                    <img src={product.logo.url} alt={`${product.product_name} logo`} className="w-full rounded-lg h-full object-contain" />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
-                      <span className="text-xl font-medium text-gray-500">{product.product_name?.charAt(0) || 'P'}</span>
-                    </div>
-                  )}
-                </div>
-                {/* Info + Upvote */}
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl font-semibold text-gray-900 mb-1 inline-flex items-center">
-                    {product.product_name || 'Unnamed Product'}
-                    {productBadgeImageUrl && (
-                      <img 
-                        src={productBadgeImageUrl} 
-                        alt={`Badge ${product.badge}`}
-                        title={`Badge ${product.badge}`}
-                        className="h-8 w-auto ml-2 inline-block align-middle"
-                      />
-                    )}
-                  </h1>
-                  {product.tagline && <p className="text-lg text-gray-600 mb-3">{product.tagline}</p>}
-                </div>
-                {/* Upvote Button */}
-                <button 
-                  onClick={handleUpvote}
-                  disabled={isVoting}
-                  className={`flex flex-col items-center justify-center border rounded-md px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${userHasUpvoted ? 'text-red-500 bg-red-50 border-red-200 hover:bg-red-100 focus:ring-red-500/50' : 'text-gray-700 bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50 focus:ring-gray-400'} ${isVoting ? 'cursor-not-allowed opacity-70' : ''}`}
-                  aria-label={`Upvote ${product.product_name}`}
-                >
-                  <Rocket size={20} weight={userHasUpvoted ? "fill" : "bold"} className={userHasUpvoted ? 'text-red-500' : 'text-gray-700'}/>
-                  <span className={`text-sm font-semibold mt-1 ${userHasUpvoted ? 'text-red-600' : 'text-gray-800'}`}>
-                    {product.upvote || 0}
-                  </span>
-                </button>
+        <div className="max-w-7xl mx-auto px-4 pt-16 pb-12">
+          {/* Hero Section */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 mb-6">
+              <Fire size={18} className="text-orange-500" />
+              <span className="text-sm font-mono opacity-50">product details</span>
+            </div>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-gray-100 p-2">
+                {product.logo && product.logo.url ? (
+                  <img src={product.logo.url} alt={`${product.product_name} logo`} className="w-full h-full object-contain" />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-xl font-medium text-gray-500">{product.product_name?.charAt(0) || 'P'}</span>
+                  </div>
+                )}
               </div>
+              <div className="text-left">
+                <h1 className="text-4xl font-bold text-black mb-2 leading-tight flex items-center">
+                  {product.product_name || 'Unnamed Product'}
+                  {productBadgeImageUrl && (
+                    <img 
+                      src={productBadgeImageUrl} 
+                      alt={`Badge ${product.badge}`}
+                      title={`Badge ${product.badge}`}
+                      className="h-10 w-auto ml-3"
+                    />
+                  )}
+                </h1>
+                {product.tagline && <p className="text-lg text-gray-600 leading-relaxed">{product.tagline}</p>}
+              </div>
+              <button 
+                onClick={handleUpvote}
+                disabled={isVoting}
+                className={`flex items-center gap-2 px-4 py-2 font-mono transition-all ${
+                  userHasUpvoted 
+                    ? 'bg-orange-500 text-white' 
+                    : 'text-gray-600 hover:bg-gray-100'
+                } ${isVoting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                aria-label={`Upvote ${product.product_name}`}
+              >
+                <Fire size={18} weight={userHasUpvoted ? "fill" : "regular"} />
+                <span className="font-semibold">{product.upvote || 0}</span>
+              </button>
+            </div>
+          </div>
 
-              {/* Links & Tags Section */}
-              <div className="mb-6">
-                {/* Horizontal Link Buttons */}
-                <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex-1">
+              {/* Quick Actions */}
+              <div className="mb-12">
+                <div className="flex flex-wrap gap-3 mb-6">
                   {effectiveProductUrl && (
                     <a
                       href={effectiveProductUrl.startsWith('http') ? effectiveProductUrl : `https://${effectiveProductUrl}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white font-semibold hover:opacity-70 transition-opacity"
                     >
-                      <LinkSimple size={16} weight="bold" className="mr-1.5" />
-                      Website
+                      <LinkSimple size={16} />
+                      Visit Website
                     </a>
                   )}
                   {product.linkedin_url && (
@@ -390,9 +393,9 @@ function ProductPage() {
                       href={product.linkedin_url.startsWith('http') ? product.linkedin_url : `https://${product.linkedin_url}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                     >
-                      <LinkedinLogo size={16} weight="bold" className="mr-1.5" />
+                      <LinkedinLogo size={16} />
                       LinkedIn
                     </a>
                   )}
@@ -401,66 +404,69 @@ function ProductPage() {
                       href={product.twitter_url.startsWith('http') ? product.twitter_url : `https://${product.twitter_url}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                     >
-                      <TwitterLogo size={16} weight="bold" className="mr-1.5" />
+                      <TwitterLogo size={16} />
                       Twitter
                     </a>
                   )}
                 </div>
 
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 justify-start">
-                    {categories.length > 0 ? (
-                      categories.map((category) => (
+                {/* Categories */}
+                {categories.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-mono mb-3 opacity-50">categories</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((category) => (
                         <Link 
                           key={category} 
                           to={`/categories/${encodeURIComponent(category)}`}
-                          className="text-xs flex items-center gap-1 bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 px-2.5 py-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400"
+                          className="text-sm px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors font-mono"
                         >
-                          <Tag size={12} />
                           {capitalizeFirstLetter(category)}
                         </Link>
-                      ))
-                    ) : (
-                      <span className="text-xs text-gray-400">No categories</span>
-                    )}
+                      ))}
+                    </div>
                   </div>
+                )}
               </div>
 
               {/* Image Gallery */}
-              <ProductImageGallery images={productImages} />
+              <div className="mb-12">
+                <ProductImageGallery images={productImages} />
+              </div>
 
               {/* Product Description */}
               {product.description && (
-                <div className="prose prose-sm max-w-none mb-6">
-                  <h2 className="text-lg font-semibold mb-2">About the Product</h2>
-                  <p>{product.description}</p> 
+                <div className="mb-12">
+                  <h2 className="text-xl font-semibold text-black mb-4">About the Product</h2>
+                  <div className="text-gray-700 leading-relaxed">
+                    <p>{product.description}</p>
+                  </div>
                 </div>
               )}
               
               {/* Related Products Section */}
-              <div className="mt-8">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Related Products</h2>
-                  <ProductList 
-                    products={relatedProducts} 
-                    loading={loadingRelated} 
-                    currentUser={currentUser}
-                    userProfileData={loggedInUserProfileData}
-                    updateLocalProductVote={updateRelatedProductVote}
-                    updateLocalBookmark={updateLocalBookmarkForRelatedProducts}
-                  />
-                  {!loadingRelated && relatedProducts.length === 0 && (
-                     <div className="bg-white border border-gray-100 rounded-lg p-6 text-center">
-                       <p className="text-sm text-gray-500">No related products found.</p>
-                     </div>
-                  )}
+              <div>
+                <h2 className="text-xl font-semibold text-black mb-6">Related Products</h2>
+                <ProductList 
+                  products={relatedProducts} 
+                  loading={loadingRelated} 
+                  currentUser={currentUser}
+                  userProfileData={loggedInUserProfileData}
+                  updateLocalProductVote={updateRelatedProductVote}
+                  updateLocalBookmark={updateLocalBookmarkForRelatedProducts}
+                />
+                {!loadingRelated && relatedProducts.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-sm text-gray-500 font-mono">no related products found</p>
+                  </div>
+                )}
               </div>
-
             </div>
             
             {/* Sidebar */}
-            <div className="w-full md:w-64 md:flex-shrink-0 order-2">
+            <div className="w-full lg:w-64 lg:flex-shrink-0">
               <Sidebar />
             </div>
           </div>

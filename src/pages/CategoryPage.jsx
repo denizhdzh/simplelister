@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getFirestore, collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { app, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { Fire } from '@phosphor-icons/react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
@@ -255,88 +256,112 @@ function CategoryPage() {
       <Header />
       
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="flex-1 order-1">
-              <div className="mb-4">
-                <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-                  Products in "{capitalizeFirstLetter(decodedCategoryName)}"
-                </h1>
-              </div>
-              
-              {/* Category Filter Section */}
-              <div className="mb-6 pb-4 border-b border-gray-200">
-                {/* Letter Selection Buttons */}
-                <div className="mb-4 flex flex-wrap gap-x-2 gap-y-2">
-                  {loadingCategories ? (
-                    <div className="flex space-x-2 animate-pulse">
-                      <div className="h-7 w-7 bg-gray-200 rounded"></div>
-                      <div className="h-7 w-7 bg-gray-200 rounded"></div>
-                      <div className="h-7 w-7 bg-gray-200 rounded"></div>
-                    </div>
-                  ) : (
-                    sortedLetters.map(letter => (
-                      <button
-                        key={letter}
-                        onClick={() => setSelectedLetter(letter)}
-                        className={`h-7 w-7 flex items-center justify-center text-xs font-medium rounded transition-colors focus:outline-none ${ 
-                          selectedLetter === letter
-                            ? 'bg-black text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-1'
-                        }`}
-                      >
-                        {letter}
-                      </button>
-                    ))
-                  )}
-                </div>
+        <div className="max-w-7xl mx-auto px-4 pt-16 pb-12">
+          {/* Hero Section */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 mb-6">
+              <Fire size={18} className="text-orange-500" />
+              <span className="text-sm font-mono opacity-50">categories</span>
+            </div>
+            <h1 className="text-4xl font-bold text-black mb-4 leading-tight">
+              {decodedCategoryName ? `${capitalizeFirstLetter(decodedCategoryName)} Products` : 'Browse Categories'}
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Discover products organized by category, from the latest launches to community favorites.
+            </p>
+          </div>
 
-                {/* Selected Letter's Categories */}
-                <div className="flex flex-wrap gap-x-3 gap-y-2 min-h-[30px]">
-                  {!loadingCategories && selectedLetter && groupedCategories[selectedLetter] && (
-                    groupedCategories[selectedLetter].map(cat => { // cat is original cased here
-                      const lowerCat = cat.toLowerCase();
-                      const isActive = lowerCat === decodedCategoryName.toLowerCase(); // Compare lowercase with lowercase URL part
-                      const encodedCatURL = encodeURIComponent(lowerCat); // URL version is lowercase
-                      return (
-                        <Link
-                          key={cat} // Use original cased cat for key as it's unique in the list
-                          to={`/categories/${encodedCatURL}`} // URL will be lowercase
-                          className={`text-xs px-3 py-1 rounded-full transition-colors flex items-center justify-center focus:outline-none ${ 
-                            isActive
-                              ? 'bg-black text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-1'
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex-1">
+              {/* Category Navigation */}
+              <div className="mb-12">
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-black mb-4">Browse by Letter</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {loadingCategories ? (
+                      <div className="flex space-x-2 animate-pulse">
+                        {Array(5).fill().map((_, i) => (
+                          <div key={i} className="w-8 h-8 bg-gray-200"></div>
+                        ))}
+                      </div>
+                    ) : (
+                      sortedLetters.map(letter => (
+                        <button
+                          key={letter}
+                          onClick={() => setSelectedLetter(letter)}
+                          className={`w-8 h-8 flex items-center justify-center text-sm font-mono transition-all ${
+                            selectedLetter === letter
+                              ? 'bg-orange-500 text-white'
+                              : 'text-gray-600 hover:bg-gray-100'
                           }`}
                         >
-                          {capitalizeFirstLetter(cat)} {/* Display capitalized original, link is lowercase */}
-                        </Link>
-                      );
-                    })
-                  )}
-                   {/* Show message if no categories for selected letter (shouldn't happen with current logic) */}
-                  {!loadingCategories && (!selectedLetter || !groupedCategories[selectedLetter]) && sortedLetters.length > 0 && (
-                     <p className="text-sm text-gray-500">Select a letter above.</p>
-                  )}
-                   {/* Show message if no categories found at all */}
-                  {!loadingCategories && sortedLetters.length === 0 && (
-                    <p className="text-sm text-gray-500">No categories found.</p>
-                  )}
+                          {letter}
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
+
+                {selectedLetter && groupedCategories[selectedLetter] && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-black mb-4">
+                      Categories starting with "{selectedLetter}"
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {groupedCategories[selectedLetter].map(cat => {
+                        const lowerCat = cat.toLowerCase();
+                        const isActive = lowerCat === decodedCategoryName.toLowerCase();
+                        const encodedCatURL = encodeURIComponent(lowerCat);
+                        return (
+                          <Link
+                            key={cat}
+                            to={`/categories/${encodedCatURL}`}
+                            className={`px-4 py-2 text-sm font-mono transition-all ${
+                              isActive
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {capitalizeFirstLetter(cat)}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Products List */}
-              {error && <p className="text-red-500">{error}</p>}
-              <CategoryProductList 
-                products={products} 
-                loading={loadingProducts || authLoading}
-                currentUser={currentUser} 
-                userProfileData={userProfileData} 
-                updateLocalProductVote={updateLocalProductVote} 
-                updateLocalBookmark={updateLocalBookmark}
-              />
+              {decodedCategoryName && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-black">
+                      {capitalizeFirstLetter(decodedCategoryName)} Products
+                    </h2>
+                    <span className="text-sm font-mono text-gray-500">
+                      {loadingProducts ? 'loading...' : `${products.length} products`}
+                    </span>
+                  </div>
+                  
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 p-4 mb-6">
+                      <p className="text-red-600">{error}</p>
+                    </div>
+                  )}
+                  
+                  <CategoryProductList 
+                    products={products} 
+                    loading={loadingProducts || authLoading}
+                    currentUser={currentUser} 
+                    userProfileData={userProfileData} 
+                    updateLocalProductVote={updateLocalProductVote} 
+                    updateLocalBookmark={updateLocalBookmark}
+                  />
+                </div>
+              )}
             </div>
             
-            <div className="w-full md:w-64 md:flex-shrink-0 order-2">
+            <div className="w-full lg:w-64 lg:flex-shrink-0">
               <Sidebar />
             </div>
           </div>

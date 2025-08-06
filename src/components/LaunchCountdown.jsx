@@ -41,9 +41,9 @@ function LaunchCountdown() {
   }, []);
 
   return (
-    <div className="inline-flex items-baseline space-x-1.5 bg-red-50/50 border border-red-100 rounded-md py-1.5 px-2.5">
-      <span className="text-xs font-medium text-gray-900">Next Launch: </span>
-      <div className="flex items-baseline space-x-1">
+    <div className="inline-flex items-center gap-2">
+      <span className="text-sm font-mono opacity-50">battle ends in:</span>
+      <div className="flex items-center gap-1">
         <TimeUnit value={timeLeft.days} unit="d" showSeparator />
         <TimeUnit value={timeLeft.hours} unit="h" showSeparator />
         <TimeUnit value={timeLeft.minutes} unit="m" showSeparator />
@@ -56,11 +56,10 @@ function LaunchCountdown() {
 function TimeUnit({ value, unit, showSeparator }) {
   return (
     <>
-      <div className="flex items-baseline">
-        <span className="font-mono text-red-500 font-bold tracking-tight">{value.toString().padStart(2, '0')}</span>
-        <span className="text-[10px] text-red-500 ml-0.5 font-medium">{unit}</span>
-      </div>
-      {showSeparator && <span className="text-red-300">:</span>}
+      <span className="font-mono text-sm text-black font-semibold">
+        {value.toString().padStart(2, '0')}{unit}
+      </span>
+      {showSeparator && <span className="text-gray-400">•</span>}
     </>
   );
 }

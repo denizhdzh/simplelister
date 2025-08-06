@@ -58,6 +58,175 @@ const getOrCreateStripeCustomer = async (userId, userEmail) => {
     }
 };
 
+// --- Create Premium Subscription Checkout ---
+exports.createPremiumCheckoutSession = onCall(async (request) => {
+    const { data, auth } = request;
+
+    const stripeSecretKey = process.env.STRIPE_SECRET;
+    if (!stripeSecretKey) {
+        throw new HttpsError("internal", "Server configuration error.");
+    }
+    const stripe = require("stripe")(stripeSecretKey);
+
+    if (!auth) {
+        throw new HttpsError("unauthenticated", "Function must be called while authenticated.");
+    }
+
+    const userId = auth.uid;
+    const userEmail = auth.token.email;
+    const { planType } = data; // 'premium' or 'business'
+
+    if (!planType || !['premium', 'business'].includes(planType)) {
+        throw new HttpsError("invalid-argument", "Invalid plan type.");
+    }
+
+    try {
+        const customerId = await getOrCreateStripeCustomer(userId, userEmail);
+        
+        // Price IDs for premium plans (placeholders)
+        const priceIds = {
+            premium: 'price_premium_monthly_placeholder',
+            business: 'price_business_monthly_placeholder'
+        };
+
+        const YOUR_DOMAIN = "http://localhost:5173";
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "subscription",
+            customer: customerId,
+            line_items: [{ price: priceIds[planType], quantity: 1 }],
+            success_url: `${YOUR_DOMAIN}/premium/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${YOUR_DOMAIN}/pricing`,
+            allow_promotion_codes: true,
+            metadata: {
+                planType: planType,
+                firebaseUID: userId,
+            }
+        });
+
+        console.log(`Premium subscription checkout created for ${planType}: ${session.id}`);
+        return { id: session.id };
+
+    } catch (error) {
+        console.error("Error creating premium checkout:", error);
+        throw new HttpsError("internal", `Could not create checkout session: ${error.message}`);
+    }
+});
+
+// --- Create Launch Package Checkout ---
+exports.createLaunchPackageCheckout = onCall(async (request) => {
+    const { data, auth } = request;
+
+    const stripeSecretKey = process.env.STRIPE_SECRET;
+    if (!stripeSecretKey) {
+        throw new HttpsError("internal", "Server configuration error.");
+    }
+    const stripe = require("stripe")(stripeSecretKey);
+
+    if (!auth) {
+        throw new HttpsError("unauthenticated", "Function must be called while authenticated.");
+    }
+
+    const userId = auth.uid;
+    const userEmail = auth.token.email;
+    const { packageType, productId } = data; // 'boost', 'mega', 'enterprise'
+
+    if (!packageType || !['boost', 'mega', 'enterprise'].includes(packageType)) {
+        throw new HttpsError("invalid-argument", "Invalid package type.");
+    }
+
+    try {
+        const customerId = await getOrCreateStripeCustomer(userId, userEmail);
+        
+        // Price IDs for launch packages (placeholders)
+        const priceIds = {
+            boost: 'price_launch_boost_placeholder',
+            mega: 'price_mega_launch_placeholder',
+            enterprise: 'price_enterprise_launch_placeholder'
+        };
+
+        const YOUR_DOMAIN = "http://localhost:5173";
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "payment",
+            customer: customerId,
+            line_items: [{ price: priceIds[packageType], quantity: 1 }],
+            success_url: `${YOUR_DOMAIN}/launch/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${YOUR_DOMAIN}/submit`,
+            allow_promotion_codes: true,
+            metadata: {
+                packageType: packageType,
+                productId: productId || '',
+                firebaseUID: userId,
+            }
+        });
+
+        console.log(`Launch package checkout created for ${packageType}: ${session.id}`);
+        return { id: session.id };
+
+    } catch (error) {
+        console.error("Error creating launch package checkout:", error);
+        throw new HttpsError("internal", `Could not create checkout session: ${error.message}`);
+    }
+});
+
+// --- Create Sponsorship Checkout ---  
+exports.createSponsorshipCheckout = onCall(async (request) => {
+    const { data, auth } = request;
+
+    const stripeSecretKey = process.env.STRIPE_SECRET;
+    if (!stripeSecretKey) {
+        throw new HttpsError("internal", "Server configuration error.");
+    }
+    const stripe = require("stripe")(stripeSecretKey);
+
+    if (!auth) {
+        throw new HttpsError("unauthenticated", "Function must be called while authenticated.");
+    }
+
+    const userId = auth.uid;
+    const userEmail = auth.token.email;
+    const { sponsorTier, productId } = data; // 'bronze', 'silver', 'gold'
+
+    if (!sponsorTier || !['bronze', 'silver', 'gold'].includes(sponsorTier)) {
+        throw new HttpsError("invalid-argument", "Invalid sponsor tier.");
+    }
+
+    try {
+        const customerId = await getOrCreateStripeCustomer(userId, userEmail);
+        
+        // Price IDs for sponsorship tiers (placeholders)  
+        const priceIds = {
+            bronze: 'price_bronze_sponsor_placeholder',
+            silver: 'price_silver_sponsor_placeholder',
+            gold: 'price_gold_sponsor_placeholder'
+        };
+
+        const YOUR_DOMAIN = "http://localhost:5173";
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "subscription", // Weekly recurring
+            customer: customerId,
+            line_items: [{ price: priceIds[sponsorTier], quantity: 1 }],
+            success_url: `${YOUR_DOMAIN}/sponsor/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${YOUR_DOMAIN}/pricing`,
+            allow_promotion_codes: true,
+            metadata: {
+                sponsorTier: sponsorTier,
+                productId: productId || '',
+                firebaseUID: userId,
+            }
+        });
+
+        console.log(`Sponsorship checkout created for ${sponsorTier}: ${session.id}`);
+        return { id: session.id };
+
+    } catch (error) {
+        console.error("Error creating sponsorship checkout:", error);
+        throw new HttpsError("internal", `Could not create checkout session: ${error.message}`);
+    }
+});
+
 // --- Create Checkout Session (Uses Customer ID) ---
 exports.createStripeCheckoutSession = onCall(async (request) => {
     // Destructure data and context from the request object passed to onCall
@@ -163,17 +332,137 @@ exports.stripeWebhookHandler = functions.https.onRequest(async (req, res) => {
             console.log('Webhook: CheckoutSession completed!', session.id, "Customer:", session.customer);
             console.log('Webhook Metadata:', session.metadata);
 
-            const productId = session.metadata.productId;
-
-            if (!productId) { console.error("Error: Product ID missing in session metadata.", session.id); res.status(200).send('Event received, but metadata missing productId.'); return; }
+            const userId = session.metadata.firebaseUID;
+            if (!userId) { 
+                console.error("Error: Firebase UID missing in session metadata.", session.id); 
+                res.status(200).send('Event received, but metadata missing firebaseUID.'); 
+                return; 
+            }
 
             try {
                 const db = admin.firestore();
-                const productRef = db.collection('products').doc(productId);
-                await productRef.update({ premium: true });
-                console.log(`Webhook: Successfully marked product ${productId} as premium.`);
-            } catch (firestoreError) { console.error(`Error updating Firestore for product ${productId}:`, firestoreError); res.status(500).send(`Firestore update error: ${firestoreError.message}`); return; }
+                const userRef = db.collection('users').doc(userId);
+
+                // Handle different payment types based on metadata
+                if (session.metadata.planType) {
+                    // Premium/Business subscription
+                    const planType = session.metadata.planType;
+                    await userRef.update({ 
+                        subscriptionTier: planType,
+                        subscriptionStatus: 'active',
+                        stripeSubscriptionId: session.subscription,
+                        subscriptionStartDate: admin.firestore.FieldValue.serverTimestamp(),
+                        weeklyResetDate: admin.firestore.FieldValue.serverTimestamp() // Reset submission counter
+                    });
+                    console.log(`Webhook: User ${userId} upgraded to ${planType} plan.`);
+
+                } else if (session.metadata.packageType) {
+                    // Launch package
+                    const packageType = session.metadata.packageType;
+                    const productId = session.metadata.productId;
+                    
+                    if (productId) {
+                        const productRef = db.collection('products').doc(productId);
+                        await productRef.update({ 
+                            launchPackage: packageType,
+                            launchPackagePurchaseDate: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                        console.log(`Webhook: Product ${productId} upgraded with ${packageType} launch package.`);
+                    }
+                    
+                    // Also track purchase in user's purchases collection
+                    await userRef.collection('purchases').add({
+                        type: 'launch_package',
+                        packageType: packageType,
+                        productId: productId || null,
+                        purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+                        sessionId: session.id
+                    });
+
+                } else if (session.metadata.sponsorTier) {
+                    // Sponsorship subscription
+                    const sponsorTier = session.metadata.sponsorTier;
+                    const productId = session.metadata.productId;
+                    
+                    // Create/update sponsorship record
+                    await db.collection('sponsorships').add({
+                        userId: userId,
+                        productId: productId || null,
+                        tier: sponsorTier,
+                        status: 'active',
+                        subscriptionId: session.subscription,
+                        startDate: admin.firestore.FieldValue.serverTimestamp(),
+                        stripeCustomerId: session.customer
+                    });
+                    
+                    if (productId) {
+                        const productRef = db.collection('products').doc(productId);
+                        await productRef.update({ 
+                            sponsorshipLevel: sponsorTier,
+                            sponsorshipStartDate: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                        console.log(`Webhook: Product ${productId} upgraded to ${sponsorTier} sponsorship.`);
+                    }
+
+                } else if (session.metadata.productId) {
+                    // Legacy product premium upgrade
+                    const productId = session.metadata.productId;
+                    const productRef = db.collection('products').doc(productId);
+                    await productRef.update({ premium: true });
+                    console.log(`Webhook: Successfully marked product ${productId} as premium.`);
+                }
+
+            } catch (firestoreError) { 
+                console.error(`Error updating Firestore:`, firestoreError); 
+                res.status(500).send(`Firestore update error: ${firestoreError.message}`); 
+                return; 
+            }
             break;
+
+        case 'invoice.payment_succeeded':
+            // Handle recurring subscription payments
+            const invoice = event.data.object;
+            const customerId = invoice.customer;
+            
+            try {
+                const db = admin.firestore();
+                // Find user by stripe customer ID
+                const usersQuery = await db.collection('users').where('stripeCustomerId', '==', customerId).get();
+                
+                if (!usersQuery.empty) {
+                    const userDoc = usersQuery.docs[0];
+                    await userDoc.ref.update({
+                        subscriptionStatus: 'active',
+                        lastPaymentDate: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log(`Webhook: Renewed subscription for customer ${customerId}`);
+                }
+            } catch (error) {
+                console.error('Error handling invoice payment:', error);
+            }
+            break;
+
+        case 'customer.subscription.deleted':
+            // Handle subscription cancellation
+            const subscription = event.data.object;
+            try {
+                const db = admin.firestore();
+                const usersQuery = await db.collection('users').where('stripeSubscriptionId', '==', subscription.id).get();
+                
+                if (!usersQuery.empty) {
+                    const userDoc = usersQuery.docs[0];
+                    await userDoc.ref.update({
+                        subscriptionStatus: 'cancelled',
+                        subscriptionTier: 'free',
+                        subscriptionEndDate: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log(`Webhook: Cancelled subscription ${subscription.id}`);
+                }
+            } catch (error) {
+                console.error('Error handling subscription cancellation:', error);
+            }
+            break;
+
         default:
             console.log(`Webhook: Unhandled event type ${event.type}`);
     }

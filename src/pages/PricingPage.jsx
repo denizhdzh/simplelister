@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import PremiumBadge from '../components/PremiumBadge';
 import { 
   Rocket, 
   Star, 
@@ -18,261 +22,303 @@ import {
   ArrowRight,
   Fire,
   Heart,
-  Eye
+  Eye,
+  Check
 } from '@phosphor-icons/react';
+import { PRICING_PLANS, LAUNCH_PACKAGES, SPONSORSHIP_TIERS } from '../constants/pricing';
 
 function PricingPage() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handlePremiumCheckout = async (planType) => {
+    if (!currentUser) {
+      window.location.href = '/auth';
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const functions = getFunctions();
+      const createCheckout = httpsCallable(functions, 'createPremiumCheckoutSession');
+      
+      const result = await createCheckout({ planType });
+      
+      // Redirect to Stripe Checkout
+      window.location.href = `https://checkout.stripe.com/pay/${result.data.id}`;
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      alert('Error creating checkout. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Header />
       
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <div className="min-h-screen bg-white">
         {/* Hero Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
+        <div className="max-w-7xl mx-auto px-4 pt-16 pb-12">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-medium mb-6">
-              <Fire size={16} className="mr-2" />
-              Launch with Maximum Impact
+            <div className="inline-flex items-center gap-2 mb-6">
+              <Fire size={18} className="text-orange-500" />
+              <span className="text-sm font-mono opacity-50">pricing plans</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Get Your Product
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-pink-500"> Noticed</span>
+            <h1 className="text-4xl font-bold text-black mb-4 leading-tight">
+              Launch Your Product with
+              <span className="text-orange-500"> Impact</span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Join over 500+ successful launches on Simple Lister. Choose the perfect package to reach 22K+ monthly visitors and build your community.
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              From free launches to premium sponsorships. Choose the plan that fits your goals and budget.
             </p>
           </div>
 
-          {/* Main Pricing Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
+          {/* Launch Plans */}
+          <div className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-black mb-2">Launch Plans</h2>
+              <p className="text-gray-500 font-mono">get your product discovered</p>
+            </div>
             
-            {/* Premium Launch - Large Card */}
-            <div className="lg:col-span-8 bg-gradient-to-br from-red-500 to-pink-600 rounded-3xl p-10 text-white relative overflow-hidden">
-              <div className="absolute top-6 right-6">
-                <div className="flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full">
-                  <Crown size={16} className="mr-2" />
-                  <span className="text-sm font-semibold">Most Popular</span>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
               
-              <div className="relative z-10">
-                <div className="flex items-center space-x-4 mb-6">
-                  <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                    <Rocket size={40} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-3xl font-bold mb-2">Premium Launch</h3>
-                    <p className="text-red-100 text-lg">The ultimate visibility package</p>
+              {/* Free Launch */}
+              <div className="md:col-span-1 border border-gray-200 p-6 flex flex-col">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-black">Free Launch</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-black">$0</span>
                   </div>
                 </div>
                 
-                <div className="mb-8">
-                  <div className="flex items-baseline mb-4">
-                    <span className="text-6xl font-bold">$29</span>
-                    <span className="text-xl text-red-100 ml-3">one-time payment</span>
-                  </div>
-                  <p className="text-red-100 text-lg leading-relaxed">
-                    Perfect for serious launches that need guaranteed exposure and premium placement on our homepage.
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle size={24} className="text-green-300" />
-                    <span className="text-lg">3-day homepage feature</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle size={24} className="text-green-300" />
-                    <span className="text-lg">Dofollow SEO backlink</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle size={24} className="text-green-300" />
-                    <span className="text-lg">Choose your launch day</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle size={24} className="text-green-300" />
-                    <span className="text-lg">Priority support</span>
-                  </div>
-                </div>
+                <ul className="space-y-2 mb-6 text-sm flex-grow">
+                  <li className="flex items-center gap-2 text-gray-700">
+                    <Check size={14} className="text-green-500" />
+                    Random launch day
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-700">
+                    <Check size={14} className="text-green-500" />
+                    1 day homepage visibility
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-700">
+                    <Check size={14} className="text-green-500" />
+                    Community voting
+                  </li>
+                  <li className="flex items-center gap-2 text-red-600">
+                    <span className="text-red-400">⚠</span>
+                    Limited to 1 per week
+                  </li>
+                </ul>
                 
                 <Link 
                   to="/submit"
-                  className="inline-flex items-center px-8 py-4 bg-white text-red-600 text-lg font-semibold rounded-2xl hover:bg-gray-100 transition-all transform hover:scale-105"
+                  className="block w-full text-center py-3 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-semibold mt-auto"
                 >
-                  Start Premium Launch
-                  <ArrowRight size={24} className="ml-3" />
+                  Submit Free
                 </Link>
               </div>
-              
-              {/* Background decoration */}
-              <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full"></div>
-              <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-white/5 rounded-full"></div>
-            </div>
 
-            {/* Stats Card */}
-            <div className="lg:col-span-4 bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 text-white">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
-                  <TrendUp size={24} className="text-white" />
-                </div>
-                <h4 className="text-2xl font-bold">Live Stats</h4>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-white/10 rounded-2xl">
-                  <div className="flex items-center space-x-3">
-                    <Eye size={20} className="text-blue-400" />
-                    <span className="text-gray-300">Monthly Visitors</span>
-                  </div>
-                  <span className="text-3xl font-bold">22.8K</span>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-white/10 rounded-2xl">
-                  <div className="flex items-center space-x-3">
-                    <Users size={20} className="text-green-400" />
-                    <span className="text-gray-300">Active Users</span>
-                  </div>
-                  <span className="text-3xl font-bold">12.6K</span>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-white/10 rounded-2xl">
-                  <div className="flex items-center space-x-3">
-                    <Rocket size={20} className="text-purple-400" />
-                    <span className="text-gray-300">Launches</span>
-                  </div>
-                  <span className="text-3xl font-bold">500+</span>
-                </div>
-              </div>
-              
-              <div className="mt-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-2xl border border-green-500/30">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-green-300 font-semibold">Growing 25% monthly</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Featured Package */}
-            <div className="lg:col-span-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-8 text-white relative overflow-hidden">
-              <div className="relative z-10">
-                <div className="flex items-center space-x-4 mb-6">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                    <Star size={32} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold">Featured Spotlight</h3>
-                    <p className="text-blue-100">Premium placement boost</p>
+              {/* Skip the Line */}
+              <div className="md:col-span-1 border border-gray-200 bg-gray-50 p-6 flex flex-col">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-black">Skip the Line</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-black">$29</span>
+                    <span className="text-sm text-gray-500 font-mono">one-time</span>
                   </div>
                 </div>
                 
-                <div className="mb-6">
-                  <div className="flex items-baseline mb-3">
-                    <span className="text-5xl font-bold">$49</span>
-                    <span className="text-lg text-blue-100 ml-2">one-time</span>
-                  </div>
-                  <p className="text-blue-100 leading-relaxed">
-                    Get premium placement in our featured section for enhanced visibility and targeted exposure.
-                  </p>
-                </div>
+                <ul className="space-y-2 mb-6 text-sm flex-grow">
+                  <li className="flex items-center gap-2 text-gray-700">
+                    <Check size={14} className="text-gray-600" />
+                    Choose your launch day
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-700">
+                    <Check size={14} className="text-gray-600" />
+                    Skip the waiting queue
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-700">
+                    <Check size={14} className="text-gray-600" />
+                    1 day homepage feature
+                  </li>
+                </ul>
                 
-                <div className="space-y-3 mb-8">
-                  <div className="flex items-center space-x-3">
-                    <Lightning size={20} className="text-yellow-300" />
-                    <span>Homepage featured section</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Target size={20} className="text-green-300" />
-                    <span>Targeted exposure boost</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Heart size={20} className="text-pink-300" />
-                    <span>Community engagement</span>
-                  </div>
-                </div>
-                
-                <a 
-                  href="https://buy.stripe.com/9B6dR97Bqg0k5rxaWk5J608"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-all transform hover:scale-105"
+                <Link 
+                  to="/submit"
+                  className="block w-full text-center py-3 bg-gray-700 text-white font-semibold hover:bg-gray-800 transition-colors mt-auto"
                 >
-                  Get Featured Spot
-                  <ArrowRight size={20} className="ml-2" />
-                </a>
+                  Skip the Line
+                </Link>
               </div>
-              
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full"></div>
-            </div>
 
-            {/* Sponsorship Package */}
-            <div className="lg:col-span-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-8 text-white relative overflow-hidden">
-              <div className="relative z-10">
-                <div className="flex items-center space-x-4 mb-6">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                    <Trophy size={32} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold">Sponsorship</h3>
-                    <p className="text-purple-100">Ongoing brand exposure</p>
+              {/* Monthly Pro */}
+              <div className="md:col-span-2 border-2 border-orange-500 bg-orange-50 p-6 relative flex flex-col">
+                <div className="absolute -top-3 left-4">
+                  <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1">POPULAR</span>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="text-xl font-semibold text-black">Monthly Pro</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold text-black">$19</span>
+                    <span className="text-sm text-gray-500 font-mono">/month</span>
                   </div>
                 </div>
                 
-                <div className="mb-6">
-                  <div className="flex items-baseline mb-3">
-                    <span className="text-4xl font-bold">Custom</span>
-                    <span className="text-lg text-purple-100 ml-2">pricing</span>
-                  </div>
-                  <p className="text-purple-100 leading-relaxed">
-                    Become a community sponsor with banner placement and custom integration options.
-                  </p>
+                <div className="grid grid-cols-2 gap-4 mb-6 flex-grow">
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2 text-gray-700">
+                      <Check size={14} className="text-orange-500" />
+                      Unlimited launches
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-700">
+                      <Check size={14} className="text-orange-500" />
+                      1 premium launch/month
+                    </li>
+                  </ul>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2 text-gray-700">
+                      <Check size={14} className="text-orange-500" />
+                      Choose launch days
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-700">
+                      <Check size={14} className="text-orange-500" />
+                      Priority support
+                    </li>
+                  </ul>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-4 mb-8">
-                  <div className="flex items-center space-x-3 p-3 bg-white/10 rounded-xl">
-                    <Sparkle size={20} className="text-yellow-300" />
-                    <span>Banner placement on all pages</span>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-white/10 rounded-xl">
-                    <Calendar size={20} className="text-blue-300" />
-                    <span>Monthly recurring exposure</span>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-white/10 rounded-xl">
-                    <LinkIcon size={20} className="text-green-300" />
-                    <span>Custom integration options</span>
-                  </div>
-                </div>
-                
-                <a 
-                  href="https://buy.stripe.com/14AaEXcVKbK49HN5C05J607"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-6 py-3 bg-white text-purple-600 font-semibold rounded-xl hover:bg-purple-50 transition-all transform hover:scale-105"
+                <button
+                  onClick={() => alert('Monthly Pro coming soon!')}
+                  className="block w-full text-center py-3 bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors mt-auto"
                 >
-                  Become Sponsor
-                  <ArrowRight size={20} className="ml-2" />
-                </a>
+                  Go Pro Monthly
+                </button>
               </div>
-              
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/5 rounded-full"></div>
-            </div>
 
+            </div>
           </div>
 
-          {/* Free Option */}
-          <div className="bg-white rounded-3xl border-2 border-gray-200 p-10 text-center mb-16">
-            <div className="max-w-2xl mx-auto">
-              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Heart size={32} className="text-gray-600" />
+          {/* Premium Services */}
+          <div className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-black mb-2">Premium Services</h2>
+              <p className="text-gray-500 font-mono">maximize your reach</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+
+              {/* Get Featured */}
+              <div className="border border-gray-200 bg-gray-50 p-8 flex flex-col">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-semibold text-black mb-2">Get Featured</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold text-black">$79</span>
+                    <span className="text-sm text-gray-500 font-mono">30 days visibility</span>
+                  </div>
+                </div>
+                
+                <ul className="space-y-3 mb-8 text-sm flex-grow">
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <Fire size={16} className="text-orange-500" />
+                    Premium sidebar placement
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <Fire size={16} className="text-orange-500" />
+                    Featured badge on product
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <Fire size={16} className="text-orange-500" />
+                    30 days extended visibility
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <Fire size={16} className="text-orange-500" />
+                    Priority customer support
+                  </li>
+                </ul>
+                
+                <button
+                  onClick={() => alert('Contact us for featured placement')}
+                  className="block w-full text-center py-3 bg-gray-700 text-white font-semibold hover:bg-gray-800 transition-colors mt-auto"
+                >
+                  Get Featured
+                </button>
               </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-4">Free Launch Option</h3>
-              <p className="text-gray-600 text-lg leading-relaxed mb-8">
-                Not ready for premium? Start with our free option! Your product will appear on the homepage for one day with a nofollow link on a randomly assigned launch day.
-              </p>
-              <Link 
-                to="/submit"
-                className="inline-flex items-center px-8 py-4 border-2 border-gray-300 text-lg font-semibold rounded-2xl text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all"
-              >
-                Submit for Free
-                <ArrowRight size={24} className="ml-3" />
-              </Link>
+
+              {/* Sponsorship */}
+              <div className="border-2 border-orange-200 bg-orange-50 p-8 relative flex flex-col">
+                <div className="absolute -top-3 left-8">
+                  <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1">PREMIUM</span>
+                </div>
+                
+                <div className="mb-6">
+                  <h3 className="text-2xl font-semibold text-black mb-2">Become a Sponsor</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold text-black">$199</span>
+                    <span className="text-sm text-gray-500 font-mono">/month - everything included</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4 mb-8 flex-grow">
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-center gap-3 text-gray-700">
+                      <Rocket size={16} className="text-orange-500" />
+                      Homepage logo placement
+                    </li>
+                    <li className="flex items-center gap-3 text-gray-700">
+                      <Rocket size={16} className="text-orange-500" />
+                      Site-wide brand visibility
+                    </li>
+                    <li className="flex items-center gap-3 text-gray-700">
+                      <Rocket size={16} className="text-orange-500" />
+                      Weekly newsletter feature
+                    </li>
+                    <li className="flex items-center gap-3 text-gray-700">
+                      <Rocket size={16} className="text-orange-500" />
+                      22K+ monthly reach
+                    </li>
+                  </ul>
+                </div>
+                
+                <button
+                  onClick={() => alert('Contact us for sponsorship opportunities')}
+                  className="block w-full text-center py-3 bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors mt-auto"
+                >
+                  Become a Sponsor
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="text-center mb-16">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              <div>
+                <div className="text-2xl font-bold text-black">22.8K</div>
+                <div className="text-sm text-gray-500 font-mono">monthly visitors</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-black">12.6K</div>
+                <div className="text-sm text-gray-500 font-mono">active users</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-black">500+</div>
+                <div className="text-sm text-gray-500 font-mono">product launches</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-black">25%</div>
+                <div className="text-sm text-gray-500 font-mono">monthly growth</div>
+              </div>
             </div>
           </div>
 
