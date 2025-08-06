@@ -1,0 +1,125 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the request is from the document owner (for /users/{userId})
+    function isUserSelf(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ================================================
+    // Users Collection (/users/{userId})
+    // ================================================
+    match /users/{userId} {
+      // --- READ ---
+      // All user document data is publicly readable (e.g., displayName, photoURL, username, bio, streak count)
+      allow get: if true;
+      // Listing users is allowed (e.g., for leaderboards)
+      allow list: if true;
+
+      // --- WRITE ---
+      // CREATE: Allow a user to create their own document
+      allow create: if isUserSelf(userId)
+                    // Ensure email is set from authenticated token and is not null
+                    && request.resource.data.email == request.auth.token.email
+                    // Set server timestamp for creation
+                    && request.resource.data.createdAt == request.time
+                    // Initialize streak count to 0 if streak field is provided or ensure it's not set negatively
+                    && (!request.resource.data.containsKey('streak') || request.resource.data.streak.count == 0)
+                    // Initialize upvotedProducts as an empty list if provided
+                    && (!request.resource.data.containsKey('upvotedProducts') || request.resource.data.upvotedProducts.size() == 0)
+                    // Require a displayName
+                    && request.resource.data.displayName is string && request.resource.data.displayName.size() > 0;
+
+      // UPDATE: Allow a user to update their own document, with protections
+      allow update: if isUserSelf(userId)
+                    // Critical fields that cannot be changed after creation
+                    && request.resource.data.email == resource.data.email
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    // Streak count should not be directly updatable by the client here.
+                    // If 'streak' field is present in the update, its 'count' subfield must match existing.
+                    // Other parts of 'streak' (e.g., 'lastUpdated') can be changed.
+                    && (!request.resource.data.containsKey('streak') || request.resource.data.streak.count == resource.data.streak.count);
+                    // upvotedProducts can be modified by the user (e.g., via arrayUnion/Remove from client for upvotes)
+
+      // DELETE: Disallow direct client-side deletion of user accounts
+      allow delete: if false;
+    }
+
+    // ================================================
+    // Products Collection (/products/{productId})
+    // ================================================
+    match /products/{productId} {
+      // --- READ ---
+      // All product data is publicly readable
+      allow get: if true;
+      allow list: if true;
+
+      // Helper function to check if the current user is the submitter of the product
+      function isProductOwner() {
+        return isAuthenticated() && request.auth.uid == resource.data.submitterId;
+      }
+
+      // --- WRITE ---
+      // CREATE: Allow authenticated users to create products
+      allow create: if isAuthenticated()
+                    // Submitter ID must be the current user's ID
+                    && request.resource.data.submitterId == request.auth.uid
+                    // Set server timestamp for creation
+                    && request.resource.data.createdAt == request.time
+                    // Require essential fields like product_name
+                    && request.resource.data.product_name is string && request.resource.data.product_name.size() > 0
+                    // Initialize upvote count and map
+                    && request.resource.data.upvote == 0
+                    && request.resource.data.upvotes is map && request.resource.data.upvotes.size() == 0;
+
+      // UPDATE (Owner): Product owner can update their product's details,
+      // but not directly manipulate voting fields with this rule.
+      allow update: if isProductOwner()
+                    // Owner cannot change who the submitter is or when it was created
+                    && request.resource.data.submitterId == resource.data.submitterId
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    // Owner cannot directly change upvote count or the upvotes map using this rule.
+                    // If these fields are included in the write, their values must match existing ones.
+                    // This forces vote changes through the specific voting rule below.
+                    && (request.resource.data.upvote == null || request.resource.data.upvote == resource.data.upvote)
+                    && (request.resource.data.upvotes == null || request.resource.data.upvotes == resource.data.upvotes);
+                    // This allows owner to update fields like 'product_name', 'description', 'images', 'tags', 'url', 'linkedin_url', etc.
+
+      // UPDATE (Voting): Any authenticated user can upvote/unvote.
+      // This rule is OR'd with the owner's update rule.
+      allow update: if isAuthenticated()
+                    // This operation must ONLY modify 'upvote' and 'upvotes' fields.
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvote', 'upvotes'])
+                    && (
+                      ( // Case 1: Upvoting
+                        request.resource.data.upvote == resource.data.upvote + 1 &&
+                        request.resource.data.upvotes[request.auth.uid] == true &&
+                        (resource.data.upvotes == null || resource.data.upvotes[request.auth.uid] == null || resource.data.upvotes[request.auth.uid] == false) // User hasn't upvoted before or is re-upvoting
+                      ) ||
+                      ( // Case 2: Unvoting
+                        request.resource.data.upvote == resource.data.upvote - 1 &&
+                        !request.resource.data.upvotes.keys().hasAny([request.auth.uid]) && // User's UID is removed from the upvotes map
+                        resource.data.upvotes[request.auth.uid] == true // User had previously upvoted
+                      )
+                    );
+
+      // DELETE: Product owner can delete their product
+      allow delete: if isProductOwner();
+    }
+
+    // You can add rules for other collections here (e.g., categories, badges)
+    // Example for a read-only 'badges' collection:
+    // match /badges/{badgeId} {
+    //   allow get: if true;
+    //   allow list: if true;
+    //   allow write: if false; // Or check for an admin role
+    // }
+  }
+} 

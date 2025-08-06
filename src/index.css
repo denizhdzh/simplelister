@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  button {
+    @apply focus:outline-none;
+  }
+}
+
+/* Remove default focus ring for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Ultralight.otf') format('opentype');
+  font-weight: 100; /* Ultralight */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Thin.otf') format('opentype');
+  font-weight: 200; /* Thin */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Light.otf') format('opentype');
+  font-weight: 300; /* Light */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Regular.otf') format('opentype');
+  font-weight: 400; /* Regular */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Medium.otf') format('opentype');
+  font-weight: 500; /* Medium */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Semibold.otf') format('opentype');
+  font-weight: 600; /* Semibold */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Bold.otf') format('opentype');
+  font-weight: 700; /* Bold */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Heavy.otf') format('opentype');
+  font-weight: 800; /* Heavy */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Compact Display';
+  src: url('/fonts/SF-Compact-Display-Black.otf') format('opentype');
+  font-weight: 900; /* Black */
+  font-style: normal;
+}
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #202020;
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  text-decoration: inherit;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+
+
